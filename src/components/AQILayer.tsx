@@ -32,12 +32,16 @@ export default function AQILayer() {
 
   useEffect(() => {
     const fetchAQIData = async () => {
-      setIsLoading(true)
-      setIsRefreshing(true)
+      if (!isLoading) setIsRefreshing(true)
       try {
         const response = await fetch('/api/aqi-data')
+        if (!response.ok) throw new Error('Failed to fetch AQI data')
         const data = await response.json()
-        setAqiData(data.data)
+        if (data.status === 'success' && Array.isArray(data.data)) {
+          setAqiData(data.data)
+        } else {
+          throw new Error('Invalid data format')
+        }
       } catch (error) {
         console.error('Error fetching AQI data:', error)
       } finally {
@@ -47,17 +51,23 @@ export default function AQILayer() {
     }
 
     fetchAQIData()
-    const interval = setInterval(fetchAQIData, 5 * 60 * 1000)
+    const interval = setInterval(fetchAQIData, 5 * 60 * 1000) // Refresh every 5 minutes
     return () => clearInterval(interval)
-  }, [setAqiData, setIsRefreshing])
+  }, [setAqiData, setIsRefreshing, isLoading])
 
   const getPointColor = (value: number) => {
-    if (value <= 50) return new THREE.Color(0x00ff00)
-    if (value <= 100) return new THREE.Color(0xffff00)
-    if (value <= 150) return new THREE.Color(0xff9900)
-    if (value <= 200) return new THREE.Color(0xff0000)
-    if (value <= 300) return new THREE.Color(0x990066)
-    return new THREE.Color(0x660000)
+    if (value <= 50) return new THREE.Color(0x00ff00)      // Good - Green
+    if (value <= 100) return new THREE.Color(0xffff00)     // Moderate - Yellow
+    if (value <= 150) return new THREE.Color(0xff9900)     // Unhealthy for Sensitive Groups - Orange
+    if (value <= 200) return new THREE.Color(0xff0000)     // Unhealthy - Red
+    if (value <= 300) return new THREE.Color(0x990066)     // Very Unhealthy - Purple
+    return new THREE.Color(0x660000)                       // Hazardous - Maroon
+  }
+
+  const getPointSize = (value: number) => {
+    // Base size that scales with AQI value but is capped
+    const baseSize = Math.min(15, 5 + (value / 50))
+    return baseSize
   }
 
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function AQILayer() {
       colors.push(color.r, color.g, color.b)
       
       // Adjusted size calculation for better proportions
-      const size = 10 + (value / 500) * 10
+      const size = getPointSize(value)
       sizes.push(size)
     })
 

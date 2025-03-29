@@ -1,51 +1,70 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import LoadingScreen from '@/components/LoadingScreen'
 import { AQIProvider } from '@/utils/AQIContext'
 import Legend from '@/components/Legend'
 
 // Dynamically import Three.js components to avoid SSR issues
-const Globe = dynamic(() => import('@/components/Globe'), { ssr: false })
-const AQILayer = dynamic(() => import('@/components/AQILayer'), { ssr: false })
+const Earth = dynamic(() => import('@/components/Earth'), { ssr: false })
+const AQIPoints = dynamic(() => import('@/components/AQIPoints'), { ssr: false })
 const InfoPanel = dynamic(() => import('@/components/InfoPanel'), { ssr: false })
-const StarField = dynamic(() => import('@/components/StarField'), { ssr: false })
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(true)
-
   return (
     <AQIProvider>
-      <main className="w-screen h-screen relative bg-black">
-        {isLoading && <LoadingScreen />}
+      <main className="w-screen h-screen relative bg-black overflow-hidden">
         <div className="absolute inset-0">
-          <Canvas>
-            <color attach="background" args={['#000']} />
-            <fog attach="fog" args={['#000', 1, 5]} />
+          <Canvas
+            camera={{
+              position: [0, 0, 2.5],
+              fov: 45,
+              near: 0.1,
+              far: 1000
+            }}
+          >
+            <color attach="background" args={['#000814']} />
             
             <Suspense fallback={null}>
-              <StarField />
-              <Globe onLoad={() => setIsLoading(false)} />
-              <AQILayer />
-            </Suspense>
+              {/* Scene Setup */}
+              <OrbitControls 
+                enablePan={false}
+                minDistance={1.5}
+                maxDistance={4}
+                rotateSpeed={0.5}
+                zoomSpeed={0.5}
+                enableDamping
+                dampingFactor={0.05}
+              />
 
-            {/* Lighting setup */}
-            <ambientLight intensity={0.1} />
-            <directionalLight 
-              position={[5, 3, 5]} 
-              intensity={0.5}
-              castShadow
-            />
-            <hemisphereLight
-              args={['#fff', '#000', 0.5]}
-              position={[0, 50, 0]}
-            />
+              {/* Lighting */}
+              <ambientLight intensity={0.1} />
+              <directionalLight 
+                position={[1, 1, 1]}
+                intensity={1.5}
+              />
+              <hemisphereLight 
+                intensity={0.5}
+                groundColor="#000814"
+              />
+
+              {/* Content */}
+              <Earth />
+              <AQIPoints />
+            </Suspense>
           </Canvas>
         </div>
-        <Legend />
-        <InfoPanel />
+
+        {/* UI Overlays */}
+        <div className="absolute inset-x-0 top-0 z-10">
+          <Legend />
+        </div>
+        <div className="absolute right-0 top-0 bottom-0 z-10">
+          <InfoPanel />
+        </div>
       </main>
     </AQIProvider>
   )

@@ -13,21 +13,29 @@ interface GlobeProps {
   onLoad?: () => void
 }
 
-function GlobeMesh() {
+interface GlobeMeshProps {
+  onLoad?: () => void
+}
+
+function GlobeMesh({ onLoad }: GlobeMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   
-  // Load textures using useLoader
-  const colorMap = useLoader(THREE.TextureLoader, '/earth-texture.jpg')
-  const bumpMap = useLoader(THREE.TextureLoader, '/earth-bump.jpg')
-  const specularMap = useLoader(THREE.TextureLoader, '/earth-specular.jpg')
+  // Load textures using useLoader with error handling
+  const [colorMap, bumpMap, specularMap] = useLoader(THREE.TextureLoader, [
+    '/earth-texture.jpg',
+    '/earth-bump.jpg',
+    '/earth-specular.jpg'
+  ])
 
   useEffect(() => {
     if (colorMap && bumpMap && specularMap) {
       colorMap.colorSpace = THREE.SRGBColorSpace
       bumpMap.colorSpace = THREE.NoColorSpace
       specularMap.colorSpace = THREE.NoColorSpace
+      // Signal that textures are loaded
+      onLoad?.()
     }
-  }, [colorMap, bumpMap, specularMap])
+  }, [colorMap, bumpMap, specularMap, onLoad])
 
   return (
     <>
@@ -79,7 +87,12 @@ export default function Globe({ onLoad }: GlobeProps) {
   // Auto-rotation and camera position updates
   useFrame((state, delta) => {
     if (groupRef.current && !state.camera.userData.isDragging && !focusedPoint) {
-      groupRef.current.rotation.y += delta * 0.1
+      groupRef.current.rotation.y += delta * 0.05 // Slower rotation
+    }
+
+    // Update controls damping
+    if (controlsRef.current) {
+      controlsRef.current.update()
     }
   })
 
@@ -169,7 +182,7 @@ export default function Globe({ onLoad }: GlobeProps) {
       />
       <ErrorBoundary>
         <Suspense fallback={null}>
-          <GlobeMesh />
+          <GlobeMesh onLoad={onLoad} />
         </Suspense>
       </ErrorBoundary>
     </group>
