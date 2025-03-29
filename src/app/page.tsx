@@ -7,15 +7,16 @@ import { OrbitControls } from '@react-three/drei'
 import LoadingScreen from '@/components/LoadingScreen'
 import { AQIProvider } from '@/utils/AQIContext'
 import Legend from '@/components/Legend'
+import DataLoader from '@/components/DataLoader'
 
 // Dynamically import Three.js components to avoid SSR issues
 const Earth = dynamic(() => import('@/components/Earth'), { ssr: false })
-const AQIPoints = dynamic(() => import('@/components/AQIPoints'), { ssr: false })
 const InfoPanel = dynamic(() => import('@/components/InfoPanel'), { ssr: false })
 
 export default function Home() {
   return (
     <AQIProvider>
+      <DataLoader />
       <main className="w-screen h-screen relative bg-black overflow-hidden">
         <div className="absolute inset-0">
           <Canvas
@@ -51,9 +52,8 @@ export default function Home() {
                 groundColor="#000814"
               />
 
-              {/* Content */}
+              {/* Earth with integrated AQI points */}
               <Earth />
-              <AQIPoints />
             </Suspense>
           </Canvas>
         </div>
