@@ -48,7 +48,7 @@ export default function Home() {
                 intensity={1.5}
               />
               <hemisphereLight 
-                intensity={0.5}
+                intensity={1}
                 groundColor="#000814"
               />
 
