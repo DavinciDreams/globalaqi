@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { useFrame, useLoader, useThree } from '@react-three/fiber'
 import { Sphere } from '@react-three/drei'
 import { useAQI } from '@/utils/AQIContext'
+import AQIFogLayer from './AQIFogLayer'
 
 // Shader for AQI points
 const vertexShader = `
@@ -178,8 +179,11 @@ export default function Earth() {
         />
       </Sphere>
       
-      {/* AQI Points - part of the same group so they rotate with the Earth */}
-      <points ref={pointsRef} geometry={pointsGeometry} material={pointsMaterial} />
+      {/* Beautiful AQI Fog Layer */}
+      <AQIFogLayer />
+      
+      {/* Keep points for interactive selection, but make them invisible */}
+      <points ref={pointsRef} geometry={pointsGeometry} material={pointsMaterial} visible={false} />
     </group>
   )
 }
