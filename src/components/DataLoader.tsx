@@ -1,33 +1,42 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAQI } from '@/utils/AQIContext'
+import ErrorDisplay from './ErrorDisplay'
 
 export default function DataLoader() {
   const { setAqiData, setIsRefreshing } = useAQI()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Function to fetch AQI data
     const fetchAQIData = async () => {
       setIsRefreshing(true)
+      setError(null) // Clear any previous errors
+      
       try {
         console.log('Fetching AQI data...')
         const response = await fetch('/api/aqi-data')
         
         if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status}`)
+          const errorData = await response.json()
+          throw new Error(errorData.message || `Failed to fetch data: ${response.status}`)
         }
         
         const result = await response.json()
         console.log('AQI data received:', result)
         
         if (result.status === 'success' && Array.isArray(result.data)) {
+          if (result.data.length === 0) {
+            throw new Error('No air quality data available')
+          }
           setAqiData(result.data)
         } else {
-          console.error('Invalid data format:', result)
+          throw new Error(result.message || 'Invalid data format received')
         }
       } catch (error) {
         console.error('Error fetching AQI data:', error)
+        setError(error instanceof Error ? error.message : 'Failed to load air quality data')
       } finally {
         setIsRefreshing(false)
       }
@@ -36,13 +45,15 @@ export default function DataLoader() {
     // Initial fetch
     fetchAQIData()
     
-    // Set up interval for periodic updates
-    const intervalId = setInterval(fetchAQIData, 60000) // Update every minute
+    // Set up interval for periodic updates - only if no error
+    const intervalId = !error ? setInterval(fetchAQIData, 60000) : null // Update every minute
     
     // Clean up on unmount
-    return () => clearInterval(intervalId)
-  }, [setAqiData, setIsRefreshing])
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [setAqiData, setIsRefreshing, error])
 
-  // This component doesn't render anything visible
-  return null
+  // Render error display if there's an error, otherwise nothing
+  return error ? <ErrorDisplay message={error} /> : null
 }

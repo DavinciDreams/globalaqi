@@ -90,58 +90,23 @@ export async function GET() {
         }
       })
     
-    // If we have very few results, add some fallback data
+    // Throw an error if we don't have enough data points
     if (aqiData.length < 10) {
-      console.warn('Few real AQI data points available, adding fallback data')
-      
-      // Add fallback data for major cities
-      cities.forEach(city => {
-        if (!aqiData.some(item => 
-          Math.abs(item.lat - city.lat) < 0.1 && 
-          Math.abs(item.lon - city.lon) < 0.1
-        )) {
-          // Generate fallback data for this city
-          aqiData.push({
-            lat: city.lat,
-            lon: city.lon,
-            value: Math.floor(50 + Math.random() * 150), // Random AQI between 50-200
-            location: `${city.name} (Estimated)`,
-            timestamp: new Date().toISOString()
-          })
-        }
-      })
+      throw new Error('Insufficient data points from OpenAQ API')
     }
-    
-    // Add some additional data points around locations with high PM2.5 values
-    const additionalPoints = aqiData
-      .filter(point => point.value > 20) // Only create additional points around areas with higher PM2.5
-      .flatMap(point => 
-        Array.from({ length: 2 }, () => {
-          const radius = 1 + Math.random() * 3 // 1-4 degrees radius (smaller than before)
-          const angle = Math.random() * Math.PI * 2
-          const latOffset = radius * Math.cos(angle)
-          const lonOffset = radius * Math.sin(angle)
-          
-          return {
-            lat: Math.max(-85, Math.min(85, point.lat + latOffset)),
-            lon: point.lon + lonOffset,
-            value: Math.max(0, Math.min(500, point.value + (Math.random() - 0.5) * 15)),
-            location: `${point.location} Region`,
-            timestamp: point.timestamp
-          }
-        })
-      )
     
     const response: AQIResponse = {
       status: 'success',
-      data: [...aqiData, ...additionalPoints]
+      data: aqiData
     }
     
     return NextResponse.json(response)
   } catch (error) {
+    console.error('Error in AQI data API:', error)
     return NextResponse.json({
       status: 'error',
-      message: 'Failed to fetch AQI data'
+      message: error instanceof Error ? error.message : 'Failed to fetch AQI data',
+      errorCode: 'DATA_FETCH_ERROR'
     }, { status: 500 })
   }
 }
